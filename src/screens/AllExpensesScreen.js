@@ -6,7 +6,11 @@ import {useSelector} from "react-redux";
 export default function AllExpensesScreen() {
   const expenses = useSelector((state) => state.expenses.expenses);
   return (
-    <ExpensesOutput expenses={expenses} expensesPeriod={'Total'} />
+    <ExpensesOutput
+      expenses={expenses}
+      expensesPeriod={'Total'}
+      fallbackText={'No expenses registered.'}
+    />
   );
 }
 
