@@ -1,14 +1,18 @@
-import React, {useLayoutEffect} from 'react';
+import React, {useLayoutEffect, useState} from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import IconButton from "../components/UI/IconButton";
 import {GlobalStyles} from "../constants/styles";
-import Button from "../components/UI/Button";
 import {useDispatch, useSelector} from "react-redux";
 import {addExpense, removeExpense, updateExpense} from "../store/expenses";
-import {getFormattedDate} from "../util/date";
 import ExpenseForm from "../components/ManageExpense/ExpenseForm";
+import {httpDeleteExpense, httpStoreExpense, httpUpdateExpense} from "../util/http";
+import LoadingOverlay from "../components/UI/LoadingOverlay";
+import ErrorOverlay from "../components/UI/ErrorOverlay";
 
 export default function ManageExpenseScreen({route, navigation}) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState();
+
   const editedExpenseId = route.params?.expenseId;
   const isEditing = !!editedExpenseId;
   const dispatch = useDispatch();
@@ -22,31 +26,64 @@ export default function ManageExpenseScreen({route, navigation}) {
     })
   }, [navigation, isEditing]);
 
-  function deleteHandler() {
-    dispatch(removeExpense({id: editedExpenseId}));
-    navigation.goBack();
+  async function deleteHandler() {
+    setIsSubmitting(true);
+    try {
+      await httpDeleteExpense(editedExpenseId);
+      dispatch(removeExpense({id: editedExpenseId}));
+      navigation.goBack();
+    } catch (error) {
+      setError('Could not delete expense.');
+      setIsSubmitting(false);
+    }
   }
 
-  function confirmHandler(expenseData) {
+  async function confirmHandler(expenseData) {
+    setIsSubmitting(true);
     if (isEditing) {
-      dispatch(
-        updateExpense({
-          id: editedExpenseId,
-          expenseData: expenseData
-        })
-      );
+      try {
+        await httpUpdateExpense(editedExpenseId, expenseData);
+        dispatch(
+          updateExpense({
+            id: editedExpenseId,
+            expenseData: expenseData
+          })
+        );
+        navigation.goBack();
+      } catch (error) {
+        setError('Could not update expense.');
+        setIsSubmitting(false);
+      }
     } else {
-      dispatch(
-        addExpense({
-          expenseData: expenseData
-        })
-      );
+      try {
+        const id = await httpStoreExpense(expenseData);
+        dispatch(
+          addExpense({
+            expenseData: {id: id, ...expenseData}
+          })
+        );
+        navigation.goBack();
+      } catch (error) {
+        setError('Could not create expense.');
+        setIsSubmitting(false);
+      }
     }
-    navigation.goBack();
   }
 
   function cancelHandler() {
     navigation.goBack();
+  }
+
+  function errorHandler() {
+    setError(null);
+  }
+
+  if (error && !isSubmitting) {
+    return <ErrorOverlay message={error} onConfirm={errorHandler} />;
+  }
+
+  if (isSubmitting) {
+    return <LoadingOverlay />;
   }
 
   const submitLabel = isEditing ? 'Update' : 'Add';
