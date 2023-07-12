@@ -4,12 +4,14 @@ import {expenses} from "../data/dummy-data";
 const expensesSlice = createSlice({
   name: 'expenses',
   initialState: {
-    expenses: expenses
+    expenses: []
   },
   reducers: {
+    setExpenses: (state, action) => {
+      state.expenses = action.payload.reverse();
+    },
     addExpense: (state, action) => {
-      const id = new Date().toString() + Math.random().toString();
-      state.expenses.unshift({id: id, ...action.payload.expenseData});
+      state.expenses.unshift({...action.payload.expenseData});
     },
     updateExpense: (state, action) => {
       const pos = state.expenses.map(e => e.id).indexOf(action.payload.id);
@@ -22,6 +24,7 @@ const expensesSlice = createSlice({
   }
 })
 
+export const setExpenses = expensesSlice.actions.setExpenses;
 export const addExpense = expensesSlice.actions.addExpense;
 export const updateExpense = expensesSlice.actions.updateExpense;
 export const removeExpense = expensesSlice.actions.removeExpense;
